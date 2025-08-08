@@ -127,15 +127,24 @@ app.post('/api/chat', async (req, res) => {
     }
   } catch (error) {
     console.error('Error in /api/chat:', error.message);
-    if (error.response) {
-      console.error('OpenRouter error response:', JSON.stringify(error.response.data, null, 2));
+    
+    // Safely extract error response data to avoid circular references
+    let errorResponseData = null;
+    if (error.response && error.response.data) {
+      try {
+        errorResponseData = JSON.stringify(error.response.data, null, 2);
+        console.error('OpenRouter error response:', errorResponseData);
+      } catch (stringifyError) {
+        console.error('OpenRouter error response (could not stringify):', error.response.status, error.response.statusText);
+      }
     }
+    
     const ollamaErrorResponse = {
       model: req.body.model || 'unknown',
       created_at: new Date().toISOString(),
       message: {
         role: 'assistant',
-        content: `Error: ${error.message}${error.response ? ' - ' + JSON.stringify(error.response.data) : ''}`
+        content: `Error: ${error.message}${errorResponseData ? ' - ' + errorResponseData : ''}`
       },
       done: true
     };
@@ -155,8 +164,12 @@ app.post('/v1/chat/completions', async (req, res) => {
     res.json(response.data);
   } catch (error) {
     console.error('Error in /v1/chat/completions:', error.message);
-    if (error.response) {
-      console.error('OpenRouter response:', JSON.stringify(error.response.data, null, 2));
+    if (error.response && error.response.data) {
+      try {
+        console.error('OpenRouter response:', JSON.stringify(error.response.data, null, 2));
+      } catch (stringifyError) {
+        console.error('OpenRouter response (could not stringify):', error.response.status, error.response.statusText);
+      }
     }
     res.status(500).send(error.message);
   }
@@ -185,8 +198,12 @@ app.get('/api/tags', async (req, res) => {
     res.json(openRouterModels);
   } catch (error) {
     console.error('Error fetching models from OpenRouter:', error.message);
-    if (error.response) {
-      console.error('OpenRouter response:', JSON.stringify(error.response.data, null, 2));
+    if (error.response && error.response.data) {
+      try {
+        console.error('OpenRouter response:', JSON.stringify(error.response.data, null, 2));
+      } catch (stringifyError) {
+        console.error('OpenRouter response (could not stringify):', error.response.status, error.response.statusText);
+      }
     }
     res.status(500).send('Failed to fetch models from OpenRouter');
   }
